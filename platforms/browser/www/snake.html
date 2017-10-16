@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<title>SNAKE</title>
+	<meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
+	
+	<link rel="Stylesheet" href="style.css" type="text/css" />
+	
+	
+</head>
+<body>
+
+<script type="text/javascript" src="cordova.js"></script>
+
+<div id="container">
+
+	<div id="board">
+	<canvas id="canvas" height="300" width="300"></canvas>
+	<script src="http://code.jquery.com/jquery-2.1.0.js"></script>
+	</div>
+	<div id="controler">
+		<div id="A" onclick>
+			&#8657
+		</div>
+
+		<div id="B" onclick>
+			&#8656
+		</div>
+		
+		<div id="C" onclick>
+			&#8658
+		</div>
+		<div style="clear:both;"></div>
+
+		<div id="D" onclick>
+			&#8659
+		</div>
+	</div>
+
+</div>
+	
+
+<script>
+
+document.getElementById("A").onclick = function() {goUp()};
+function goUp() {
+    var newCourse = "up";
+	if (newCourse !== undefined){
+		snake.setCourse(newCourse);
+	};
+}
+
+document.getElementById("B").onclick = function() {goLeft()};
+function goLeft() {
+    var newCourse = "left";
+	if (newCourse !== undefined){
+		snake.setCourse(newCourse);
+	};
+}
+
+document.getElementById("C").onclick = function() {goRight()};
+function goRight() {
+    var newCourse = "right";
+	if (newCourse !== undefined){
+		snake.setCourse(newCourse);
+	};
+}
+
+document.getElementById("D").onclick = function() {goDown()};
+function goDown() {
+    var newCourse = "down";
+	if (newCourse !== undefined){
+		snake.setCourse(newCourse);
+	};
+}
+
+
+var canvas = document.getElementById("canvas");
+var context = canvas.getContext("2d");
+var height = canvas.height;
+var width = canvas.width;
+
+var sizeBlock = 10;
+var heightInBlocks = height/sizeBlock;
+var widthInBlocks = width/sizeBlock;
+
+var score=0;
+
+var drawFrame=function(){
+	context.fillStyle="Black";
+	context.fillRect(0,0,width,sizeBlock);
+	context.fillRect(0,height-sizeBlock,width,sizeBlock);
+	context.fillRect(0,0,sizeBlock,width);
+	context.fillRect(width-sizeBlock,0,sizeBlock,height);
+};
+
+var drawScore = function(){
+	context.font = "10px Courier";
+	context.fillStyle = "white";
+	context.textAlign = "center";
+	context.textBaseline = "middle";
+	context.fillText("Score: " + score, height/2, 5); 
+};
+
+var gameOver = function (){
+	clearInterval(IdInterval);
+	context.font = "40px Courier";
+	context.fillStyle = "Blue";
+	context.textAlign = "center";
+	context.textBaseline = "middle";
+	context.fillText("GAME OVER!", width/2, height/2);
+};
+
+var Block = function (column, row){
+	this.column = column;
+	this.row = row;
+};
+
+var circle = function (x, y, radius, fillCircle){
+	context.beginPath();
+	context.arc(x, y, radius, 0, Math.PI*2, false);
+	if(fillCircle){
+		context.fill();
+	} else{
+		context.stroke();
+	}
+};
+
+Block.prototype.drawSquare = function(colour){
+	var x = this.column * sizeBlock;
+	var y = this.row * sizeBlock;
+	context.fillStyle = colour;
+	context.fillRect(x, y, sizeBlock, sizeBlock);
+};
+
+Block.prototype.drawCircle = function(colour){
+	var centerX = this.column * sizeBlock + sizeBlock/2;
+	var centerY = this.row * sizeBlock + sizeBlock/2;
+	context.fillStyle = colour;
+	circle(centerX, centerY, sizeBlock/2, true);
+};
+
+Block.prototype.compere = function (otherBlock){
+	return this.column === otherBlock.column && this.row === otherBlock.row;
+};
+
+
+
+var Snake = function(){
+	this.segments = [
+	new Block (10,10),
+	new Block (9,10),
+	new Block (8,10),
+	];
+	this.course = "right";
+	this.nextCourse = "right";
+
+};
+
+Snake.prototype.draw = function(){
+	for (var i=0; i<this.segments.length; i++){
+		this.segments[i].drawSquare("Blue");
+	}
+};
+
+var snake = new Snake();
+snake.draw();
+
+
+
+Snake.prototype.move = function(){
+	var head = this.segments[0];
+	var newHead;
+	this.course = this.nextCourse;
+
+	if(this.course ==="right"){
+		newHead = new Block(head.column + 1, head.row);
+	} else	if (this.course === "down"){
+		newHead = new Block(head.column, head.row + 1);
+	} else if (this.course === "up"){
+		newHead = new Block(head.column, head.row - 1);
+	} else if (this.course === "left"){
+		newHead = new Block(head.column - 1, head.row);
+	} if (this.detectCollision(newHead)){
+		gameOver();
+		return;
+	}
+	this.segments.unshift(newHead);
+	if(newHead.compere(apple.position)){
+		score++
+		apple.move();
+	} else {
+		this.segments.pop();
+	}
+};
+
+
+Snake.prototype.detectCollision = function(head){
+	var leftCollision = (head.column === 0);
+	var rightCollision = (head.column === widthInBlocks - 1);
+	var downCollision = (head.row === heightInBlocks - 1);
+	var upCollision = (head.row === 0);
+
+	var wallCollision = leftCollision || rightCollision || downCollision || upCollision;
+
+	var bodyCollision = false;
+
+	for (var i = 0; i < this.segments.length; i++){
+		if (head.compere(this.segments[i])){
+			bodyCollision = true;
+		}
+	} return wallCollision || bodyCollision;
+};
+
+
+var directions = {
+	37: "left",
+	38: "up",
+	39: "right",
+	40: "down",
+
+};
+
+$("body").keydown(function (incident) {
+	var newCourse = directions[incident.keyCode];
+	if (newCourse !== undefined){
+		snake.setCourse(newCourse);
+	}
+});
+
+Snake.prototype.setCourse = function (newCourse){
+	if (this.course === "up" && newCourse === "down"){
+		return;
+	} else if (this.course === "right" && newCourse === "left"){
+		return;
+	} else if (this.course === "down" && newCourse === "up"){
+		return;
+	} else if (this.course === "left" && newCourse === "right"){
+		return;
+	}
+	this.nextCourse = newCourse;
+};
+
+var Apple = function () {
+	this.position = new Block (20,20);
+};
+
+Apple.prototype.draw = function (){
+	this.position.drawCircle("red");  //"LimeGreen"
+};
+
+var apple = new Apple();
+apple.draw();
+
+Apple.prototype.move = function(){
+	var randomColumn = Math.floor(Math.random()*(widthInBlocks -2))+1;
+	var randomRow = Math.floor(Math.random()*(heightInBlocks-2))+1;
+	this.position = new Block (randomColumn, randomRow);
+};
+
+var apple = new Apple();
+apple.move();
+apple.draw();
+
+
+
+
+//var przykladowyBlok = new Block(5,5);
+//var przykladowyOkrag = new Block (20,8);
+
+	var IdInterval = setInterval(function(){
+		context.clearRect(0,0,height,width);
+		
+		//przykladowyBlok.drawSquare("green");
+		//przykladowyOkrag.drawCircle("pink");
+		snake.move();
+		snake.draw();
+		apple.draw();
+		drawFrame();
+		drawScore();
+		//gameOver();
+	}, 100);
+
+
+	
+</script>
+
+
+
+
+</body>
+</html>
